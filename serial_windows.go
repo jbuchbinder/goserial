@@ -17,8 +17,8 @@ type serialPort struct {
 	fd syscall.Handle
 	rl sync.Mutex
 	wl sync.Mutex
-	st structTimeouts
-	h uintptr
+	st *structTimeouts
+	h syscall.Handle
 	ro *syscall.Overlapped
 	wo *syscall.Overlapped
 }
@@ -68,9 +68,6 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 	if err = setupComm(h, 64, 64); err != nil {
 		return
 	}
-	if err = setCommTimeouts(h); err != nil {
-		return
-	}
 	if err = setCommMask(h); err != nil {
 		return
 	}
@@ -88,6 +85,12 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 	port.fd = h
 	port.ro = ro
 	port.wo = wo
+    var timeouts structTimeouts
+    port.st = &timeouts
+//	if err = setCommTimeouts(&port); err != nil {
+//		return
+//	}
+    port.SetTimeouts(100)
 
 	return port, nil
 }
@@ -95,7 +98,36 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 func (p *serialPort) Close() error {
 	return p.f.Close()
 }
-func (p *serialPort) SetTimeout(m Millisecond){
+func (p *serialPort) SetTimeouts(msec uint32){
+    timeouts := p.st
+	timeouts.ReadIntervalTimeout = msec/10
+	timeouts.ReadTotalTimeoutMultiplier = msec
+	timeouts.ReadTotalTimeoutConstant = msec
+
+	/* From http://msdn.microsoft.com/en-us/library/aa363190(v=VS.85).aspx
+
+		 For blocking I/O see below:
+
+		 Remarks:
+
+		 If an application sets ReadIntervalTimeout and
+		 ReadTotalTimeoutMultiplier to MAXDWORD and sets
+		 ReadTotalTimeoutConstant to a value greater than zero and
+		 less than MAXDWORD, one of the following occurs when the
+		 ReadFile function is called:
+
+		 If there are any bytes in the input buffer, ReadFile returns
+		       immediately with the bytes in the buffer.
+
+		 If there are no bytes in the input buffer, ReadFile waits
+	               until a byte arrives and then returns immediately.
+
+		 If no bytes arrive within the time specified by
+		       ReadTotalTimeoutConstant, ReadFile times out.
+	*/
+
+    p.st = timeouts
+    setCommTimeouts(p.h, timeouts)
 	
 }
 func (p *serialPort) Write(buf []byte) (int, error) {
@@ -183,36 +215,8 @@ func setCommState(h syscall.Handle, baud int) error {
 	return nil
 }
 
-func setCommTimeouts(h syscall.Handle) error {
-	var timeouts structTimeouts
-	const MAXDWORD = 1<<32 - 1
-	timeouts.ReadIntervalTimeout = MAXDWORD
-	timeouts.ReadTotalTimeoutMultiplier = MAXDWORD
-	timeouts.ReadTotalTimeoutConstant = MAXDWORD - 1
-
-	/* From http://msdn.microsoft.com/en-us/library/aa363190(v=VS.85).aspx
-
-		 For blocking I/O see below:
-
-		 Remarks:
-
-		 If an application sets ReadIntervalTimeout and
-		 ReadTotalTimeoutMultiplier to MAXDWORD and sets
-		 ReadTotalTimeoutConstant to a value greater than zero and
-		 less than MAXDWORD, one of the following occurs when the
-		 ReadFile function is called:
-
-		 If there are any bytes in the input buffer, ReadFile returns
-		       immediately with the bytes in the buffer.
-
-		 If there are no bytes in the input buffer, ReadFile waits
-	               until a byte arrives and then returns immediately.
-
-		 If no bytes arrive within the time specified by
-		       ReadTotalTimeoutConstant, ReadFile times out.
-	*/
-
-	r, _, err := syscall.Syscall(nSetCommTimeouts, 2, uintptr(h), uintptr(unsafe.Pointer(&timeouts)), 0)
+func setCommTimeouts(h syscall.Handle, timeouts *structTimeouts) error {
+	r, _, err := syscall.Syscall(nSetCommTimeouts, 2, uintptr(h), uintptr(unsafe.Pointer(timeouts)), 0)
 	if r == 0 {
 		return err
 	}
