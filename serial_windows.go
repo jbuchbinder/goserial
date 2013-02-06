@@ -9,6 +9,7 @@ import (
 	"sync"
 	"syscall"
 	"unsafe"
+	"time"
 )
 
 type serialPort struct {
@@ -16,6 +17,8 @@ type serialPort struct {
 	fd syscall.Handle
 	rl sync.Mutex
 	wl sync.Mutex
+	st structTimeouts
+	h uintptr
 	ro *syscall.Overlapped
 	wo *syscall.Overlapped
 }
@@ -92,7 +95,9 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 func (p *serialPort) Close() error {
 	return p.f.Close()
 }
-
+func (p *serialPort) SetTimeout(m Millisecond){
+	
+}
 func (p *serialPort) Write(buf []byte) (int, error) {
 	p.wl.Lock()
 	defer p.wl.Unlock()
