@@ -17,7 +17,7 @@ import (
 	//"unsafe"
 )
 
-func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
+func openPort(name string, baud int, spec []byte) (rwc io.ReadWriteCloser, err error) {
 	f, err := os.OpenFile(name, syscall.O_RDWR|syscall.O_NOCTTY|syscall.O_NONBLOCK, 0666)
 	if err != nil {
 		return
@@ -69,6 +69,45 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 	// Select raw mode
 	st.c_lflag &= ^C.tcflag_t(C.ICANON | C.ECHO | C.ECHOE | C.ISIG)
 	st.c_oflag &= ^C.tcflag_t(C.OPOST)
+
+	// Defaults to 8N1 if nothing valid is given
+	byteSize := spec[0]
+	parity := spec[1]
+	stopBits := spec[2]
+
+	switch byteSize {
+	case '7':
+		st.c_cflag |= C.tcflag_t(C.CS7)
+		break
+	case '8':
+	default:
+		st.c_cflag |= C.tcflag_t(C.CS8)
+		break
+	}
+	switch parity {
+	case 'E':
+		st.c_cflag |= C.tcflag_t(C.PARENB)
+		st.c_cflag &= ^C.tcflag_t(C.PARODD)
+		break
+	case 'O':
+		st.c_cflag |= C.tcflag_t(C.PARENB)
+		st.c_cflag |= C.tcflag_t(C.PARODD)
+		break
+	case 'N':
+	default:
+		st.c_cflag &= ^C.tcflag_t(C.PARENB)
+		break
+	}
+	switch stopBits {
+	case '2':
+		st.c_cflag |= C.tcflag_t(C.CSTOPB)
+		break
+	case '1':
+	default:
+		st.c_cflag &= ^C.tcflag_t(C.CSTOPB)
+		break
+	}
+	st.c_cflag &= ^C.tcflag_t(C.CSIZE)
 
 	_, err = C.tcsetattr(fd, C.TCSANOW, &st)
 	if err != nil {

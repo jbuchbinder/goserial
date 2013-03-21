@@ -75,9 +75,9 @@ type Config struct {
 	Name string
 	Baud int
 
-	// Size     int // 0 get translated to 8
-	// Parity   SomeNewTypeToGetCorrectDefaultOf_None
-	// StopBits SomeNewTypeToGetCorrectDefaultOf_1
+	Size     int // 0 get translated to 8
+	Parity   byte
+	StopBits int
 
 	// RTSFlowControl bool
 	// DTRFlowControl bool
@@ -89,7 +89,28 @@ type Config struct {
 
 // OpenPort opens a serial port with the specified configuration
 func OpenPort(c *Config) (io.ReadWriteCloser, error) {
-	return openPort(c.Name, c.Baud)
+	spec := make([]byte, 3)
+	switch c.Size {
+	case 7:
+		spec[0] = '7'
+		break
+	case 8:
+	default:
+		spec[0] = '8'
+		break
+	}
+	spec[1] = c.Parity
+	switch c.Parity {
+	case 2:
+		spec[2] = '2'
+		break
+	case 1:
+	default:
+		spec[2] = '1'
+		break
+	}
+
+	return openPort(c.Name, c.Baud, spec)
 }
 
 // func Flush()

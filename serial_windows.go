@@ -40,7 +40,7 @@ type structTimeouts struct {
 	WriteTotalTimeoutConstant   uint32
 }
 
-func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
+func openPort(name string, baud int, spec []byte) (rwc io.ReadWriteCloser, err error) {
 	if len(name) > 0 && name[0] != '\\' {
 		name = "\\\\.\\" + name
 	}
@@ -62,7 +62,12 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 		}
 	}()
 
-	if err = setCommState(h, baud); err != nil {
+	// TODO: Sanity checking for these comm parameters
+	byteSize := spec[0]
+	stopBits := spec[1]
+	parity := spec[2]
+
+	if err = setCommState(h, baud, byteSize, stopBits, parity); err != nil {
 		return
 	}
 	if err = setupComm(h, 64, 64); err != nil {
@@ -85,12 +90,9 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 	port.fd = h
 	port.ro = ro
 	port.wo = wo
-    var timeouts structTimeouts
-    port.st = &timeouts
-//	if err = setCommTimeouts(&port); err != nil {
-//		return
-//	}
-    port.SetTimeouts(100)
+	var timeouts structTimeouts
+	port.st = &timeouts
+	port.SetTimeouts(100)
 
 	return port, nil
 }
@@ -98,8 +100,9 @@ func openPort(name string, baud int) (rwc io.ReadWriteCloser, err error) {
 func (p *serialPort) Close() error {
 	return p.f.Close()
 }
+
 func (p *serialPort) SetTimeouts(msec uint32){
-    timeouts := p.st
+	timeouts := p.st
 	timeouts.ReadIntervalTimeout = msec/10
 	timeouts.ReadTotalTimeoutMultiplier = msec
 	timeouts.ReadTotalTimeoutConstant = msec
@@ -128,8 +131,8 @@ func (p *serialPort) SetTimeouts(msec uint32){
 
     p.st = timeouts
     setCommTimeouts(p.h, timeouts)
-	
 }
+
 func (p *serialPort) Write(buf []byte) (int, error) {
 	p.wl.Lock()
 	defer p.wl.Unlock()
@@ -198,7 +201,7 @@ func getProcAddr(lib syscall.Handle, name string) uintptr {
 	return addr
 }
 
-func setCommState(h syscall.Handle, baud int) error {
+func setCommState(h syscall.Handle, baud int, byteSize, stopBits, parity byte) error {
 	var params structDCB
 	params.DCBlength = uint32(unsafe.Sizeof(params))
 
@@ -206,7 +209,9 @@ func setCommState(h syscall.Handle, baud int) error {
 	params.flags[0] |= 0x10 // Assert DSR
 
 	params.BaudRate = uint32(baud)
-	params.ByteSize = 8
+	params.ByteSize = byteSize
+	params.Parity = parity
+	params.StopBits = stopBits
 
 	r, _, err := syscall.Syscall(nSetCommState, 2, uintptr(h), uintptr(unsafe.Pointer(&params)), 0)
 	if r == 0 {
