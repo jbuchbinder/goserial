@@ -33,12 +33,22 @@ Usage
 package main
 
 import (
-        "github.com/tarm/goserial"
+        "github.com/jbuchbinder/goserial"
         "log"
 )
 
 func main() {
-        c := &serial.Config{Name: "COM45", Baud: 115200}
+        c := &serial.Config{
+		Name: "COM45",
+		Baud: 115200,
+		Size: 8,
+		Parity: 'N',
+		StopBits: 1,
+		RTSFlowControl: false,
+		DTRFlowControl: false,
+		XONFlowControl: false,
+		Timeout: 0
+	}
         s, err := serial.OpenPort(c)
         if err != nil {
                 log.Fatal(err)
