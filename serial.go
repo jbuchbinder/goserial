@@ -29,7 +29,7 @@ Example usage:
   package main
 
   import (
-        "github.com/jbuchbinder/goserial"
+        serial "github.com/jbuchbinder/goserial"
         "log"
   )
 
@@ -38,13 +38,13 @@ Example usage:
 		Name: "COM45",
 		Baud: 115200,
 		Size: 8,
-		Parity: 'N',
+		Parity: serial.PARITY_NONE,
 		StopBits: 1,
 		RTSFlowControl: false,
 		DTRFlowControl: false,
 		XONFlowControl: false,
 		Timeout: 0
-	}
+        }
         s, err := serial.OpenPort(c)
         if err != nil {
                 log.Fatal(err)
@@ -68,9 +68,12 @@ package serial
 import "io"
 
 const (
-	RTS_FLAG = 0
-	DTR_FLAG = 1
-	XON_FLAG = 2
+	RTS_FLAG    = 0
+	DTR_FLAG    = 1
+	XON_FLAG    = 2
+	PARITY_NONE = byte('N')
+	PARITY_EVEN = byte('E')
+	PARITY_ODD  = byte('O')
 )
 
 // Config contains the information needed to open a serial port.

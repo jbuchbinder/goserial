@@ -1,10 +1,10 @@
-GoSerial
-========
+# GOSERIAL
+
 A simple go package to allow you to read and write from the
 serial port as a stream of bytes.
 
-Details
--------
+## DETAILS
+
 It aims to have the same API on all platforms, including windows.  As
 an added bonus, the windows package does not use cgo, so you can cross
 compile for windows from another platform.  Unfortunately goinstall
@@ -17,23 +17,18 @@ Currently there is very little in the way of configurability.  You can
 set the baud rate.  Then you can Read(), Write(), or Close() the
 connection.  Read() will block until at least one byte is returned.
 Write is the same.  There is currently no exposed way to set the
-timeouts, though patches are welcome.
-
-Currently all ports are opened with 8 data bits, 1 stop bit, no
-parity, no hardware flow control, and no software flow control.  This
-works fine for many real devices and many faux serial devices
-including usb-to-serial converters and bluetooth serial ports.
+timeouts in Mac/Linux, though patches are welcome.
 
 You may Read() and Write() simulantiously on the same connection (from
 different goroutines).
 
-Usage
------
+## USAGE
+
 ```go
 package main
 
 import (
-        "github.com/jbuchbinder/goserial"
+        serial "github.com/jbuchbinder/goserial"
         "log"
 )
 
@@ -42,13 +37,13 @@ func main() {
 		Name: "COM45",
 		Baud: 115200,
 		Size: 8,
-		Parity: 'N',
+		Parity: serial.PARITY_NONE,
 		StopBits: 1,
 		RTSFlowControl: false,
 		DTRFlowControl: false,
 		XONFlowControl: false,
 		Timeout: 0
-	}
+        }
         s, err := serial.OpenPort(c)
         if err != nil {
                 log.Fatal(err)
@@ -68,6 +63,9 @@ func main() {
 }
 ```
 
-Possible Future Work
--------------------- 
-- better tests (loopback etc)
+## POSSIBLE FUTURE WORK
+
+* better tests (loopback etc)
+* timeout support for Linux/Mac
+* more low-level setting and configuration for serial ports
+
