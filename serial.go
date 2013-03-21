@@ -57,6 +57,12 @@ package serial
 
 import "io"
 
+const (
+	RTS_FLAG = 0
+	DTR_FLAG = 1
+	XON_FLAG = 2
+)
+
 // Config contains the information needed to open a serial port.
 //
 // Currently few options are implemented, but more may be added in the
@@ -79,18 +85,24 @@ type Config struct {
 	Parity   byte
 	StopBits int
 
-	// RTSFlowControl bool
-	// DTRFlowControl bool
-	// XONFlowControl bool
+	RTSFlowControl bool
+	DTRFlowControl bool
+	XONFlowControl bool
 
 	// CRLFTranslate bool
-	// TimeoutStuff int
+	Timeout int
 }
 
 // OpenPort opens a serial port with the specified configuration
 func OpenPort(c *Config) (io.ReadWriteCloser, error) {
 	spec := make([]byte, 3)
 	switch c.Size {
+	case 5:
+		spec[0] = '5'
+		break
+	case 6:
+		spec[0] = '6'
+		break
 	case 7:
 		spec[0] = '7'
 		break
@@ -110,7 +122,10 @@ func OpenPort(c *Config) (io.ReadWriteCloser, error) {
 		break
 	}
 
-	return openPort(c.Name, c.Baud, spec)
+	// Determine "flow" flags based on config
+	flow := []bool{c.RTSFlowControl, c.DTRFlowControl, c.XONFlowControl}
+
+	return openPort(c.Name, c.Baud, spec, flow)
 }
 
 // func Flush()

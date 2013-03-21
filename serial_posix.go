@@ -14,10 +14,15 @@ import (
 	"io"
 	"os"
 	"syscall"
-	//"unsafe"
 )
 
-func openPort(name string, baud int, spec []byte) (rwc io.ReadWriteCloser, err error) {
+type serialPort struct {
+	f *os.File
+}
+
+func openPort(name string, baud int, spec []byte, flow []bool) (rwc io.ReadWriteCloser, err error) {
+	port := new(serialPort)
+
 	f, err := os.OpenFile(name, syscall.O_RDWR|syscall.O_NOCTTY|syscall.O_NONBLOCK, 0666)
 	if err != nil {
 		return
@@ -70,12 +75,26 @@ func openPort(name string, baud int, spec []byte) (rwc io.ReadWriteCloser, err e
 	st.c_lflag &= ^C.tcflag_t(C.ICANON | C.ECHO | C.ECHOE | C.ISIG)
 	st.c_oflag &= ^C.tcflag_t(C.OPOST)
 
+	// Flow control
+	if flow[RTS_FLAG] {
+		st.c_cflag |= C.tcflag_t(C.CRTSCTS)
+	}
+	if flow[XON_FLAG] {
+		st.c_cflag |= C.tcflag_t(C.IXON | C.IXOFF | C.IXANY)
+	}
+
 	// Defaults to 8N1 if nothing valid is given
 	byteSize := spec[0]
 	parity := spec[1]
 	stopBits := spec[2]
 
 	switch byteSize {
+	case '5':
+		st.c_cflag |= C.tcflag_t(C.CS5)
+		break
+	case '6':
+		st.c_cflag |= C.tcflag_t(C.CS6)
+		break
 	case '7':
 		st.c_cflag |= C.tcflag_t(C.CS7)
 		break
@@ -138,5 +157,22 @@ func openPort(name string, baud int, spec []byte) (rwc io.ReadWriteCloser, err e
 				}
 	*/
 
-	return f, nil
+	port.f = f
+
+	return port, nil
+}
+
+func (p *serialPort) SetTimeouts(msec uint32) {
+}
+
+func (p *serialPort) Read(buf []byte) (int, error) {
+	return p.f.Read(buf)
+}
+
+func (p *serialPort) Write(buf []byte) (int, error) {
+	return p.f.Write(buf)
+}
+
+func (p *serialPort) Close() error {
+	return p.f.Close()
 }
