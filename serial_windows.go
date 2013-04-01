@@ -12,6 +12,22 @@ import (
 	"time"
 )
 
+const (
+	FLAG_DTRCONTROL = 0
+	FLAG_RTSCONTROL = 1
+	OFFSET_DTRCONTROL = 4
+	OFFSET_RTSCONTROL = 4
+
+	// Imported from winbase.h
+	RTS_CONTROL_DISABLE     = 0x00 << OFFSET_RTSCONTROL
+	RTS_CONTROL_ENABLE      = 0x01 << OFFSET_RTSCONTROL
+	RTS_CONTROL_HANDSHAKE   = 0x10 << OFFSET_RTSCONTROL
+	RTS_CONTROL_TOGGLE      = 0x11 << OFFSET_RTSCONTROL
+	DTR_CONTROL_DISABLE     = 0x00 << OFFSET_DTRCONTROL
+	DTR_CONTROL_ENABLE      = 0x01 << OFFSET_DTRCONTROL
+	DTR_CONTROL_HANDSHAKE   = 0x10 << OFFSET_DTRCONTROL
+)
+
 type serialPort struct {
 	f  *os.File
 	fd syscall.Handle
@@ -67,7 +83,7 @@ func openPort(name string, baud int, spec []byte, flow []bool) (rwc io.ReadWrite
 	stopBits := spec[1]
 	parity := spec[2]
 
-	if err = setCommState(h, baud, byteSize, stopBits, parity); err != nil {
+	if err = setCommState(h, baud, byteSize, stopBits, parity, flow); err != nil {
 		return
 	}
 	if err = setupComm(h, 64, 64); err != nil {
@@ -201,12 +217,23 @@ func getProcAddr(lib syscall.Handle, name string) uintptr {
 	return addr
 }
 
-func setCommState(h syscall.Handle, baud int, byteSize, stopBits, parity byte) error {
+func setCommState(h syscall.Handle, baud int, byteSize, stopBits, parity byte, flow []bool) error {
 	var params structDCB
 	params.DCBlength = uint32(unsafe.Sizeof(params))
 
 	params.flags[0] = 0x01  // fBinary
-	params.flags[0] |= 0x10 // Assert DSR
+
+        if flow[DTR_FLAG] {
+		params.flags[FLAG_DTRCONTROL] |= DTR_CONTROL_ENABLE // Assert DSR
+        } else {
+		params.flags[FLAG_DTRCONTROL] |= DTR_CONTROL_HANDSHAKE // Assert DSR
+	}
+
+        if flow[RTS_FLAG] {
+		params.flags[FLAG_RTSCONTROL] |= RTS_CONTROL_ENABLE // Assert RTS/CTS
+        } else {
+		params.flags[FLAG_RTSCONTROL] |= RTS_CONTROL_HANDSHAKE // Assert RTS/CTS
+	}
 
 	params.BaudRate = uint32(baud)
 	params.ByteSize = byteSize
