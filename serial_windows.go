@@ -9,23 +9,24 @@ import (
 	"sync"
 	"syscall"
 	"unsafe"
-	"time"
 )
 
 const (
+	SERIAL_FLAGS_CLEAR = 0
+
 	FLAG_DTRCONTROL = 0
 	FLAG_RTSCONTROL = 1
 	OFFSET_DTRCONTROL = 4
 	OFFSET_RTSCONTROL = 4
 
 	// Imported from winbase.h
-	RTS_CONTROL_DISABLE     = 0x00 << OFFSET_RTSCONTROL
-	RTS_CONTROL_ENABLE      = 0x01 << OFFSET_RTSCONTROL
-	RTS_CONTROL_HANDSHAKE   = 0x10 << OFFSET_RTSCONTROL
-	RTS_CONTROL_TOGGLE      = 0x11 << OFFSET_RTSCONTROL
-	DTR_CONTROL_DISABLE     = 0x00 << OFFSET_DTRCONTROL
-	DTR_CONTROL_ENABLE      = 0x01 << OFFSET_DTRCONTROL
-	DTR_CONTROL_HANDSHAKE   = 0x10 << OFFSET_DTRCONTROL
+	RTS_CONTROL_DISABLE     = 0 /* 0b00 */ << OFFSET_RTSCONTROL
+	RTS_CONTROL_ENABLE      = 1 /* 0b01 */ << OFFSET_RTSCONTROL
+	RTS_CONTROL_HANDSHAKE   = 2 /* 0b10 */ << OFFSET_RTSCONTROL
+	RTS_CONTROL_TOGGLE      = 3 /* 0b11 */ << OFFSET_RTSCONTROL
+	DTR_CONTROL_DISABLE     = 0 /* 0b00 */ << OFFSET_DTRCONTROL
+	DTR_CONTROL_ENABLE      = 1 /* 0b01 */ << OFFSET_DTRCONTROL
+	DTR_CONTROL_HANDSHAKE   = 2 /* 0b10 */ << OFFSET_DTRCONTROL
 )
 
 type serialPort struct {
@@ -221,7 +222,8 @@ func setCommState(h syscall.Handle, baud int, byteSize, stopBits, parity byte, f
 	var params structDCB
 	params.DCBlength = uint32(unsafe.Sizeof(params))
 
-	params.flags[0] = 0x01  // fBinary
+	params.flags[0] = SERIAL_FLAGS_CLEAR
+	params.flags[0] |= 1  // fBinary (0b01)
 
         if flow[DTR_FLAG] {
 		params.flags[FLAG_DTRCONTROL] |= DTR_CONTROL_ENABLE // Assert DSR
@@ -264,7 +266,7 @@ func setupComm(h syscall.Handle, in, out int) error {
 }
 
 func setCommMask(h syscall.Handle) error {
-	const EV_RXCHAR = 0x0001
+	const EV_RXCHAR = 1 /* 0b0001 */
 	r, _, err := syscall.Syscall(nSetCommMask, 2, uintptr(h), EV_RXCHAR, 0)
 	if r == 0 {
 		return err

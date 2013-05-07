@@ -69,3 +69,8 @@ func main() {
 * timeout support for Linux/Mac
 * more low-level setting and configuration for serial ports
 
+## REFERENCES
+
+* Win32 Serial Communication : http://msdn.microsoft.com/en-us/library/ms810467.aspx
+* Windows DCB structure : http://msdn.microsoft.com/en-us/library/windows/desktop/aa363214(v=vs.85).aspx
+
