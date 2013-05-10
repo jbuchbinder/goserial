@@ -89,39 +89,39 @@ func openPort(name string, baud int, spec []byte, flow []bool) (rwc io.ReadWrite
 	stopBits := spec[2]
 
 	switch byteSize {
-	case '5':
+	case byte(5):
 		st.c_cflag |= C.tcflag_t(C.CS5)
 		break
-	case '6':
+	case byte(6):
 		st.c_cflag |= C.tcflag_t(C.CS6)
 		break
-	case '7':
+	case byte(7):
 		st.c_cflag |= C.tcflag_t(C.CS7)
 		break
-	case '8':
+	case byte(8):
 	default:
 		st.c_cflag |= C.tcflag_t(C.CS8)
 		break
 	}
 	switch parity {
-	case 'E':
+	case PARITY_EVEN:
 		st.c_cflag |= C.tcflag_t(C.PARENB)
 		st.c_cflag &= ^C.tcflag_t(C.PARODD)
 		break
-	case 'O':
+	case PARITY_ODD:
 		st.c_cflag |= C.tcflag_t(C.PARENB)
 		st.c_cflag |= C.tcflag_t(C.PARODD)
 		break
-	case 'N':
+	case PARITY_NONE:
 	default:
 		st.c_cflag &= ^C.tcflag_t(C.PARENB)
 		break
 	}
 	switch stopBits {
-	case '2':
+	case byte(2):
 		st.c_cflag |= C.tcflag_t(C.CSTOPB)
 		break
-	case '1':
+	case byte(1):
 	default:
 		st.c_cflag &= ^C.tcflag_t(C.CSTOPB)
 		break
