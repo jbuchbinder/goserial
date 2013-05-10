@@ -5,6 +5,7 @@ package serial
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -83,23 +84,29 @@ func openPort(name string, baud int, spec []byte, flow []bool) (rwc io.ReadWrite
 	byteSize := spec[0]
 	stopBits := spec[1]
 	parity := spec[2]
+	log.Printf("byteSize = %s, stopBits = %s, parity = %s", string(byteSize), string(stopBits), string(parity))
 
 	if err = setCommState(h, baud, byteSize, stopBits, parity, flow); err != nil {
+		log.Print("Failed to setCommState")
 		return
 	}
 	if err = setupComm(h, 64, 64); err != nil {
+		log.Print("Failed to setupComm")
 		return
 	}
 	if err = setCommMask(h); err != nil {
+		log.Print("Failed to setCommMask")
 		return
 	}
 
 	ro, err := newOverlapped()
 	if err != nil {
+		log.Print("Failed to set ro with newOverlapped")
 		return
 	}
 	wo, err := newOverlapped()
 	if err != nil {
+		log.Print("Failed to set wo with newOverlapped")
 		return
 	}
 	port := new(serialPort)
