@@ -84,7 +84,7 @@ func openPort(name string, baud int, spec []byte, flow []bool) (rwc io.ReadWrite
 	byteSize := spec[0]
 	stopBits := spec[1]
 	parity := spec[2]
-	log.Printf("byteSize = %d, stopBits = %d, parity = %d", int(byteSize), int(stopBits), int(parity))
+	log.Printf("DEBUG: byteSize = %d, parity = %d, stopBits = %d", int(byteSize), int(stopBits), int(parity))
 
 	if err = setCommState(h, baud, byteSize, stopBits, parity, flow); err != nil {
 		log.Print("Failed to setCommState")
