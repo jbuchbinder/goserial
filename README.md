@@ -42,7 +42,7 @@ func main() {
 		RTSFlowControl: false,
 		DTRFlowControl: false,
 		XONFlowControl: false,
-		Timeout: 0
+		Timeout: 0,
         }
         s, err := serial.OpenPort(c)
         if err != nil {
@@ -66,7 +66,7 @@ func main() {
 ## POSSIBLE FUTURE WORK
 
 * better tests (loopback etc)
-* timeout support for Linux/Mac
+* ~~timeout support for Linux/Mac~~
 * more low-level setting and configuration for serial ports
 
 ## REFERENCES
